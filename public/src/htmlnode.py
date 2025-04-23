@@ -1,76 +1,53 @@
-# src/htmlnode.py
-from abc import ABC, abstractmethod
-
-class HTMLNode(ABC):
+class HTMLNode:
     def __init__(self, tag=None, value=None, children=None, props=None):
         self.tag = tag
         self.value = value
-        self.children = children or []
-        self.props = props or {}
+        self.children = children
+        self.props = props
 
-    @abstractmethod
     def to_html(self):
-        pass
+        raise NotImplementedError("to_html method not implemented")
 
     def props_to_html(self):
-        return " ".join([f'{key}="{value}"' for key, value in self.props.items()])
+        if self.props is None:
+            return ""
+        props_html = ""
+        for prop in self.props:
+            props_html += f' {prop}="{self.props[prop]}"'
+        return props_html
 
     def __repr__(self):
-        return f"HTMLNode(tag={self.tag}, value={self.value}, children={self.children}, props={self.props})"
+        return f"HTMLNode({self.tag}, {self.value}, children: {self.children}, {self.props})"
 
 
-# src/htmlnode.py
 class LeafNode(HTMLNode):
-    def __init__(self, tag=None, value=None, props=None):
-        if value is None:
-            raise ValueError("Value must be provided for LeafNode")
-        super().__init__(tag, value, None, props)  # No children, so passing None for children
+    def __init__(self, tag, value, props=None):
+        super().__init__(tag, value, None, props)
 
     def to_html(self):
-        if self.tag:
-            # If there is a tag, render it as HTML
-            return f"<{self.tag}{' ' + self.props_to_html() if self.props else ''}>{self.value}</{self.tag}>"
-        else:
-            # If no tag, return as raw text
+        if self.value is None:
+            raise ValueError("invalid HTML: no value")
+        if self.tag is None:
             return self.value
+        return f"<{self.tag}{self.props_to_html()}>{self.value}</{self.tag}>"
 
     def __repr__(self):
-        return f"LeafNode(tag={self.tag}, value={self.value}, props={self.props})"
+        return f"LeafNode({self.tag}, {self.value}, {self.props})"
 
-# htmlnode.py
-
-from htmlnode import HTMLNode, LeafNode  # Ensure this import is at the top
 
 class ParentNode(HTMLNode):
     def __init__(self, tag, children, props=None):
-        if not tag:
-            raise ValueError("Tag must be provided for ParentNode")
-        if not children:
-            raise ValueError("Children must be provided for ParentNode")
-        
-        self.tag = tag
-        self.children = children
-        self.props = props if props else {}
+        super().__init__(tag, None, children, props)
 
     def to_html(self):
-        # Raise an error if the tag is not provided
-        if not self.tag:
-            raise ValueError("Tag is required for ParentNode")
-
-        # Raise an error if there are no children
-        if not self.children:
-            raise ValueError("ParentNode must have children")
-
-        # Generate the opening tag with props
-        opening_tag = f"<{self.tag}{self.props_to_html()}>"
-
-        # Recursively generate HTML for each child
-        children_html = "".join(child.to_html() for child in self.children)
-
-        # Closing tag
-        closing_tag = f"</{self.tag}>"
-
-        return f"{opening_tag}{children_html}{closing_tag}"
+        if self.tag is None:
+            raise ValueError("invalid HTML: no tag")
+        if self.children is None:
+            raise ValueError("invalid HTML: no children")
+        children_html = ""
+        for child in self.children:
+            children_html += child.to_html()
+        return f"<{self.tag}{self.props_to_html()}>{children_html}</{self.tag}>"
 
     def __repr__(self):
-        return f"ParentNode(tag={self.tag}, children={self.children}, props={self.props})"
+        return f"ParentNode({self.tag}, children: {self.children}, {self.props})"
